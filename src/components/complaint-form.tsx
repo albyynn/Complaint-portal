@@ -81,10 +81,10 @@ export function ComplaintForm() {
         const file = e.target.files?.[0]
         if (!file) return
 
-        // Check file size (5MB limit)
-        const maxSize = 5 * 1024 * 1024
+        // Check file size (10MB limit)
+        const maxSize = 10 * 1024 * 1024
         if (file.size > maxSize) {
-            toast.error("File too large (max 5MB)")
+            toast.error("File too large (max 10MB)")
             return
         }
 
@@ -312,7 +312,7 @@ export function ComplaintForm() {
                                         accept="image/*,application/pdf"
                                     />
                                     <p className="text-xs text-muted-foreground">
-                                        Max 5MB • Images or PDF
+                                        Max 10MB • Images or PDF
                                     </p>
                                 </div>
 

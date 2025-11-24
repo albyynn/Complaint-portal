@@ -12,10 +12,10 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
         }
 
-        // File size limit: 5MB
-        const maxSize = 5 * 1024 * 1024;
+        // File size limit: 10MB
+        const maxSize = 10 * 1024 * 1024;
         if (file.size > maxSize) {
-            return NextResponse.json({ error: 'File too large (max 5MB)' }, { status: 400 });
+            return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
         }
 
         // Allowed file types
