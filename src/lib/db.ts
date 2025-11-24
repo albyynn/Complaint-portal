@@ -7,6 +7,7 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json');
 
 export interface Complaint {
     id: string;
+    userId?: string;
     branch: string;
     category: string;
     urgency: string;

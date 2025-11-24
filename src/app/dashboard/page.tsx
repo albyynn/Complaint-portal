@@ -30,8 +30,10 @@ export default function DashboardPage() {
     useEffect(() => {
         if (allComplaints && user) {
             const anonymousIds = JSON.parse(localStorage.getItem("anonymous_complaint_ids") || "[]")
+            const currentUserId = user.id || user.email
 
             const filtered = allComplaints.filter((c) =>
+                c.userId === currentUserId ||
                 c.studentEmail === user.email ||
                 anonymousIds.includes(c.id)
             )

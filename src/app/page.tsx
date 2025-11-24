@@ -40,25 +40,25 @@ export default function Home() {
       {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
 
       <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 text-center">
-        <div className="mb-8 p-6 bg-primary/10 rounded-full animate-pulse">
-          <GraduationCap className="h-16 w-16 text-primary" />
+        <div className="mb-6 p-4 bg-primary/10 rounded-full">
+          <GraduationCap className="h-12 w-12 text-primary" />
         </div>
 
-        <h1 className="text-4xl font-bold tracking-tight mb-4">
+        <h1 className="text-2xl lg:text-4xl font-bold tracking-tight mb-3">
           Welcome to Brototype Help
         </h1>
-        <p className="text-xl text-muted-foreground mb-8 max-w-md">
+        <p className="text-sm lg:text-lg text-muted-foreground mb-8 max-w-md">
           Your voice matters. Submit complaints, track status, and get help quickly.
         </p>
 
         <div className="flex flex-col gap-4 w-full max-w-xs">
           <Link href="/register" className="w-full">
-            <Button size="lg" className="w-full text-lg h-12">
+            <Button size="lg" className="w-full h-11">
               Get Started
             </Button>
           </Link>
           <Link href="/login" className="w-full">
-            <Button variant="outline" size="lg" className="w-full text-lg h-12">
+            <Button variant="outline" size="lg" className="w-full h-11">
               I have an account
             </Button>
           </Link>

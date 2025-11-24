@@ -21,6 +21,7 @@ export async function POST(request: Request) {
 
         const newComplaint: Complaint = {
             id: uuidv4(),
+            userId: body.userId,
             branch: body.branch,
             category: body.category,
             urgency: body.urgency || 'Normal',

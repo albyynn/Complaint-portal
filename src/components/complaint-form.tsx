@@ -106,14 +106,19 @@ export function ComplaintForm() {
         try {
             const userData = localStorage.getItem("user")
             let finalValues = { ...values }
+            let userId = undefined
 
-            if (userData && !values.isAnonymous) {
+            if (userData) {
                 const user = JSON.parse(userData)
-                if (!finalValues.studentEmail) finalValues.studentEmail = user.email
-                if (!finalValues.studentName) finalValues.studentName = user.name
+                userId = user.id || user.email // Use user ID for tracking
+
+                if (!values.isAnonymous) {
+                    if (!finalValues.studentEmail) finalValues.studentEmail = user.email
+                    if (!finalValues.studentName) finalValues.studentName = user.name
+                }
             }
 
-            const payload = { ...finalValues, attachments }
+            const payload = { ...finalValues, attachments, userId }
             const response = await fetch("/api/complaints", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
