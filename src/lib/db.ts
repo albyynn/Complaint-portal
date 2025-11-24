@@ -77,33 +77,87 @@ export async function getUserByEmail(email: string) {
 export async function getComplaints(): Promise<Complaint[]> {
     if (complaintsCache) return complaintsCache;
 
-    await ensureFile(COMPLAINTS_FILE, []);
+    // Only check file if cache is empty
+    try {
+        await fs.access(COMPLAINTS_FILE);
+    } catch {
+        await fs.writeFile(COMPLAINTS_FILE, '[]');
+        complaintsCache = [];
+        return [];
+    }
+
     const data = await fs.readFile(COMPLAINTS_FILE, 'utf-8');
-    complaintsCache = JSON.parse(data);
+    let complaints = JSON.parse(data) as Complaint[];
+
+    // Sort by createdAt descending (newest first)
+    complaints.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    complaintsCache = complaints;
     return complaintsCache!;
 }
 
 export async function saveComplaint(complaint: Complaint) {
-    const complaints = await getComplaints();
-    complaints.push(complaint);
-    // Update cache
-    complaintsCache = complaints;
-    // Write to file asynchronously
-    fs.writeFile(COMPLAINTS_FILE, JSON.stringify(complaints, null, 2));
+    // Ensure cache is loaded
+    if (!complaintsCache) {
+        await getComplaints();
+    }
+
+    // Update cache immediately
+    complaintsCache!.unshift(complaint);
+
+    // Fire-and-forget write (don't await)
+    fs.writeFile(COMPLAINTS_FILE, JSON.stringify(complaintsCache, null, 2)).catch(err => {
+        console.error("Failed to write complaints file:", err);
+    });
+
     return complaint;
 }
 
 export async function updateComplaint(id: string, updates: Partial<Complaint>) {
-    const complaints = await getComplaints();
-    const index = complaints.findIndex((c) => c.id === id);
+    // Ensure cache is loaded
+    if (!complaintsCache) {
+        await getComplaints();
+    }
+
+    const index = complaintsCache!.findIndex((c) => c.id === id);
     if (index === -1) return null;
 
-    complaints[index] = { ...complaints[index], ...updates };
-    // Update cache
-    complaintsCache = complaints;
-    // Write to file asynchronously
-    fs.writeFile(COMPLAINTS_FILE, JSON.stringify(complaints, null, 2));
-    return complaints[index];
+    complaintsCache![index] = { ...complaintsCache![index], ...updates };
+
+    // Fire-and-forget write
+    fs.writeFile(COMPLAINTS_FILE, JSON.stringify(complaintsCache, null, 2)).catch(err => {
+        console.error("Failed to write complaints file:", err);
+    });
+
+    return complaintsCache![index];
+}
+
+export async function deleteComplaint(id: string) {
+    // Ensure cache is loaded
+    if (!complaintsCache) {
+        await getComplaints();
+    }
+
+    const index = complaintsCache!.findIndex((c) => c.id === id);
+    if (index === -1) return false;
+
+    // Safety check
+    const initialLength = complaintsCache!.length;
+    complaintsCache!.splice(index, 1);
+
+    if (initialLength > 1 && complaintsCache!.length === 0) {
+        console.error("CRITICAL ERROR: Deletion wiped all complaints! Aborting save.");
+        // Restore from file to be safe? Or just fail.
+        // For now, just return false and don't write.
+        return false;
+    }
+
+    // Fire-and-forget write
+    fs.writeFile(COMPLAINTS_FILE, JSON.stringify(complaintsCache, null, 2)).catch(err => {
+        console.error("Failed to write complaints file:", err);
+    });
+
+    return true;
 }
 
 export async function getComplaintById(id: string) {

@@ -1,98 +1,23 @@
 [
   {
-    "id": "f04793e5-7eed-4f28-827e-479227ae9f9a",
-    "branch": "Bangalore",
-    "category": "Other",
-    "urgency": "High",
-    "subject": "sdfghjkl dfgh",
-    "message": "asdfghjkasdfghjkl",
-    "isAnonymous": true,
-    "status": "In Progress",
-    "createdAt": "2025-11-23T07:24:42.692Z",
-    "attachments": [],
-    "notes": [
-      {
-        "id": "1763882950797",
-        "author": "Admin User",
-        "message": "i solved",
-        "visibleToStudent": true,
-        "date": "2025-11-23T07:29:10.797Z"
-      },
-      {
-        "id": "1763997997340",
-        "author": "Admin User",
-        "message": "in progress i will figure out it",
-        "visibleToStudent": true,
-        "date": "2025-11-24T15:26:37.340Z"
-      }
-    ]
-  },
-  {
-    "id": "6ad551fb-3ca8-4db8-83a3-b1b6492c94a8",
-    "branch": "Bangalore",
-    "category": "Placement",
-    "urgency": "Normal",
-    "subject": "234567i",
-    "message": "sdfghjklgdsfhfhdg",
-    "isAnonymous": false,
-    "studentName": "student 1",
-    "studentEmail": "student1@brototype.com",
-    "status": "Open",
-    "createdAt": "2025-11-23T08:47:10.182Z",
-    "attachments": [],
-    "notes": [
-      {
-        "id": "1763888032400",
-        "author": "Admin User",
-        "message": "i will do",
-        "visibleToStudent": true,
-        "date": "2025-11-23T08:53:52.400Z"
-      }
-    ]
-  },
-  {
-    "id": "117b99db-beab-4f1b-8c1a-83138bc0f8d1",
-    "branch": "Trivandrum",
+    "id": "9ef24010-8c93-45df-baee-7938c25f88fb",
+    "branch": "Kochi",
     "category": "Other",
     "urgency": "Critical",
-    "subject": "dfghjkl",
-    "message": "vcejbbkcnjn jcnkdjsnkjcdskjndsjcn",
-    "isAnonymous": false,
-    "studentName": "student 1",
-    "studentEmail": "student@brototype.com",
+    "subject": "demo complaint",
+    "message": "Demo testing description",
+    "isAnonymous": true,
     "status": "Closed",
-    "createdAt": "2025-11-24T15:35:13.268Z",
+    "createdAt": "2025-11-24T17:05:29.703Z",
     "attachments": [],
     "notes": [
       {
-        "id": "1763998596665",
+        "id": "1764004747664",
         "author": "Admin User",
-        "message": "thank you",
+        "message": "thank u for your review",
         "visibleToStudent": true,
-        "date": "2025-11-24T15:36:36.665Z"
-      },
-      {
-        "id": "1763998658084",
-        "author": "student 1",
-        "message": "thank u for your reply",
-        "visibleToStudent": true,
-        "date": "2025-11-24T15:37:38.084Z"
+        "date": "2025-11-24T17:19:07.664Z"
       }
     ]
-  },
-  {
-    "id": "f0972667-1c99-49af-8cb9-ed738741c23c",
-    "branch": "Chennai",
-    "category": "Infrastructure",
-    "urgency": "High",
-    "subject": "shvvchjcbdc",
-    "message": "dcbjdcbbdkhdcb dchbdcbhdc",
-    "isAnonymous": false,
-    "studentName": "student 1",
-    "studentEmail": "student@brototype.com",
-    "status": "Resolved",
-    "createdAt": "2025-11-24T15:56:50.896Z",
-    "attachments": [],
-    "notes": []
   }
 ]

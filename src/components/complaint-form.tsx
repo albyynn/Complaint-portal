@@ -122,6 +122,15 @@ export function ComplaintForm() {
 
             if (!response.ok) throw new Error("Failed to submit")
 
+            const data = await response.json()
+
+            // If anonymous, save ID to local storage so user can see it in dashboard
+            if (values.isAnonymous) {
+                const storedIds = JSON.parse(localStorage.getItem("anonymous_complaint_ids") || "[]")
+                storedIds.push(data.id)
+                localStorage.setItem("anonymous_complaint_ids", JSON.stringify(storedIds))
+            }
+
             toast.success("Complaint submitted successfully!")
             form.reset()
             setAttachments([])

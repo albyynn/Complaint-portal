@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { LogOut, Plus } from "lucide-react"
 import { useComplaints } from "@/lib/hooks"
+import { LoadingPage } from "@/components/loading"
 
 export default function DashboardPage() {
     const router = useRouter()
@@ -28,10 +29,11 @@ export default function DashboardPage() {
 
     useEffect(() => {
         if (allComplaints && user) {
+            const anonymousIds = JSON.parse(localStorage.getItem("anonymous_complaint_ids") || "[]")
+
             const filtered = allComplaints.filter((c) =>
                 c.studentEmail === user.email ||
-                // Also show anonymous ones if we tracked them locally (omitted for now)
-                false
+                anonymousIds.includes(c.id)
             )
             setMyComplaints(filtered)
         }
@@ -42,7 +44,7 @@ export default function DashboardPage() {
         router.push("/")
     }
 
-    if (isLoading) return <div className="p-8 text-center">Loading...</div>
+    if (isLoading) return <LoadingPage />
 
     return (
         <div className="min-h-screen bg-background flex flex-col relative">

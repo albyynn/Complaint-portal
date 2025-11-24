@@ -13,9 +13,22 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import Link from "next/link"
 
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { useComplaint } from "@/lib/hooks"
+import { LoadingPage } from "@/components/loading"
 
 export default function ComplaintDetailPage() {
     const params = useParams()
@@ -70,7 +83,27 @@ export default function ComplaintDetailPage() {
         }
     }
 
-    if (isLoading) return <div className="p-8 text-center">Loading...</div>
+    async function handleDelete() {
+        try {
+            const res = await fetch(`/api/complaints/${params.id}`, {
+                method: "DELETE"
+            })
+
+            if (!res.ok) throw new Error("Failed to delete")
+
+            toast.success("Complaint deleted")
+
+            if (user?.role === 'admin' || user?.role === 'consultant') {
+                router.push("/admin")
+            } else {
+                router.push("/dashboard")
+            }
+        } catch (error) {
+            toast.error("Failed to delete complaint")
+        }
+    }
+
+    if (isLoading) return <LoadingPage />
     if (!complaint) return <div className="p-8 text-center">Complaint not found</div>
 
     const statusColors = {
@@ -80,14 +113,41 @@ export default function ComplaintDetailPage() {
         Closed: "bg-gray-500",
     }
 
+    const canDelete = user?.role === 'admin' || (user?.role === 'student' && user?.email === complaint.studentEmail);
+
     return (
         <div className="min-h-screen bg-background pb-12">
             <header className="border-b bg-card sticky top-0 z-10">
-                <div className="container mx-auto px-4 py-4 flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                        <ArrowLeft className="h-5 w-5" />
-                    </Button>
-                    <h1 className="text-xl font-bold">Complaint Details</h1>
+                <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                            <ArrowLeft className="h-5 w-5" />
+                        </Button>
+                        <h1 className="text-xl font-bold">Complaint Details</h1>
+                    </div>
+                    {canDelete && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" size="sm">
+                                    Delete
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete the complaint.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                        Delete
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
                 </div>
             </header>
 
@@ -106,7 +166,9 @@ export default function ComplaintDetailPage() {
                                     </Badge>
                                 </div>
                                 <div className="text-sm text-muted-foreground mt-2">
-                                    Posted {formatDistanceToNow(new Date(complaint.createdAt), { addSuffix: true })}
+                                    Posted {complaint.createdAt && !isNaN(new Date(complaint.createdAt).getTime())
+                                        ? formatDistanceToNow(new Date(complaint.createdAt), { addSuffix: true })
+                                        : 'recently'}
                                     {complaint.branch && ` • ${complaint.branch}`}
                                     <span className="ml-2">
                                         • by {complaint.isAnonymous ? (
@@ -162,7 +224,7 @@ export default function ComplaintDetailPage() {
                                 </Card>
                             ))}
 
-                            {!complaint.isAnonymous && user?.role === 'student' && (
+                            {!complaint.isAnonymous && user?.role === 'student' && user?.email === complaint.studentEmail && (
                                 <Card>
                                     <CardContent className="p-4 space-y-4">
                                         <Textarea

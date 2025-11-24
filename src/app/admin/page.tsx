@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import Link from "next/link"
 import { LogOut, Search, Filter } from "lucide-react"
 import { useComplaints } from "@/lib/hooks"
+import { LoadingPage } from "@/components/loading"
 
 export default function AdminDashboard() {
     const router = useRouter()
@@ -72,7 +73,7 @@ export default function AdminDashboard() {
         critical: allComplaints?.filter(c => c.urgency === 'Critical').length || 0
     }
 
-    if (isLoading) return <div className="p-8 text-center">Loading...</div>
+    if (isLoading) return <LoadingPage />
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
