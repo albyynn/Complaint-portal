@@ -1,0 +1,16 @@
+[
+  {
+    "id": "2bddd366-717a-4638-a527-1f2b223c1b73",
+    "name": "student 1",
+    "email": "student1@brototype.com",
+    "role": "student",
+    "password": "student123"
+  },
+  {
+    "id": "5ab524ca-a0d7-4020-886c-92f1da587056",
+    "name": "student 1",
+    "email": "student@brototype.com",
+    "role": "student",
+    "password": "student123"
+  }
+]
