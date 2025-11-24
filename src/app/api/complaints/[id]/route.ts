@@ -1,26 +1,32 @@
 import { NextResponse } from 'next/server';
-import { getComplaintById, updateComplaint } from '@/lib/db';
+import { getComplaintById, updateComplaint, deleteComplaint } from '@/lib/db';
 
-export async function GET(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
-) {
-    const { id } = await params;
-    const complaint = await getComplaintById(id);
-    if (!complaint) {
-        return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
+export async function GET(request: Request, { params }: { params: { id: string } }) {
+    try {
+        const complaint = await getComplaintById(params.id);
+
+        if (!complaint) {
+            return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
+        }
+
+        return NextResponse.json(complaint, {
+            headers: {
+                'Cache-Control': 'no-store, max-age=0',
+            },
+        });
+    } catch (error) {
+        console.error('Error in GET /api/complaints/[id]:', error);
+        return NextResponse.json({ error: 'Failed to fetch complaint' }, { status: 500 });
     }
-    return NextResponse.json(complaint);
 }
 
-export async function PATCH(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: Request, { params }: { params: { id: string } }) {
     try {
-        const { id } = await params;
         const body = await request.json();
-        const updated = await updateComplaint(id, body);
+        const updated = await updateComplaint(params.id, body);
 
         if (!updated) {
             return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
@@ -28,21 +34,14 @@ export async function PATCH(
 
         return NextResponse.json(updated);
     } catch (error) {
-        return NextResponse.json(
-            { error: 'Failed to update complaint' },
-            { status: 500 }
-        );
+        console.error('Error in PATCH /api/complaints/[id]:', error);
+        return NextResponse.json({ error: 'Failed to update complaint' }, { status: 500 });
     }
 }
 
-export async function DELETE(
-    request: Request,
-    { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: Request, { params }: { params: { id: string } }) {
     try {
-        const { id } = await params;
-        const { deleteComplaint } = await import('@/lib/db');
-        const success = await deleteComplaint(id);
+        const success = await deleteComplaint(params.id);
 
         if (!success) {
             return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
@@ -50,9 +49,7 @@ export async function DELETE(
 
         return NextResponse.json({ success: true });
     } catch (error) {
-        return NextResponse.json(
-            { error: 'Failed to delete complaint' },
-            { status: 500 }
-        );
+        console.error('Error in DELETE /api/complaints/[id]:', error);
+        return NextResponse.json({ error: 'Failed to delete complaint' }, { status: 500 });
     }
 }

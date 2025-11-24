@@ -1,9 +1,15 @@
-import fs from 'fs/promises';
-import path from 'path';
+import { neon } from '@neondatabase/serverless';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const COMPLAINTS_FILE = path.join(DATA_DIR, 'complaints.json');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const sql = neon(process.env.DATABASE_URL!);
+
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    role: 'student' | 'admin' | 'consultant';
+    branch?: string;
+    password: string;
+}
 
 export interface Complaint {
     id: string;
@@ -30,138 +36,168 @@ export interface Note {
     date: string;
 }
 
-export interface User {
-    id: string;
-    name: string;
-    email: string;
-    role: 'student' | 'admin' | 'consultant';
-    branch?: string;
-    password?: string;
-}
-
-// In-memory cache
-let usersCache: User[] | null = null;
-let complaintsCache: Complaint[] | null = null;
-
-async function ensureFile(filePath: string, defaultData: any) {
-    try {
-        await fs.access(filePath);
-    } catch {
-        await fs.writeFile(filePath, JSON.stringify(defaultData, null, 2));
-    }
-}
-
+// USER OPERATIONS
 export async function getUsers(): Promise<User[]> {
-    if (usersCache) return usersCache;
-
-    await ensureFile(USERS_FILE, []);
-    const data = await fs.readFile(USERS_FILE, 'utf-8');
-    usersCache = JSON.parse(data);
-    return usersCache!;
-}
-
-export async function saveUser(user: User) {
-    const users = await getUsers();
-    users.push(user);
-    // Update cache
-    usersCache = users;
-    // Write to file asynchronously to not block response
-    fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2));
-    return user;
-}
-
-export async function getUserByEmail(email: string) {
-    const users = await getUsers();
-    return users.find((u) => u.email === email) || null;
-}
-
-export async function getComplaints(): Promise<Complaint[]> {
-    if (complaintsCache) return complaintsCache;
-
-    // Only check file if cache is empty
     try {
-        await fs.access(COMPLAINTS_FILE);
-    } catch {
-        await fs.writeFile(COMPLAINTS_FILE, '[]');
-        complaintsCache = [];
+        const rows = await sql`SELECT * FROM users`;
+        return rows as User[];
+    } catch (error) {
+        console.error('Error fetching users:', error);
         return [];
     }
-
-    const data = await fs.readFile(COMPLAINTS_FILE, 'utf-8');
-    let complaints = JSON.parse(data) as Complaint[];
-
-    // Sort by createdAt descending (newest first)
-    complaints.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-    complaintsCache = complaints;
-    return complaintsCache!;
 }
 
-export async function saveComplaint(complaint: Complaint) {
-    // Ensure cache is loaded
-    if (!complaintsCache) {
-        await getComplaints();
+export async function getUserByEmail(email: string): Promise<User | null> {
+    try {
+        const rows = await sql`SELECT * FROM users WHERE email = ${email} LIMIT 1`;
+        return rows[0] as User || null;
+    } catch (error) {
+        console.error('Error fetching user by email:', error);
+        return null;
     }
-
-    // Update cache immediately
-    complaintsCache!.unshift(complaint);
-
-    // Fire-and-forget write (don't await)
-    fs.writeFile(COMPLAINTS_FILE, JSON.stringify(complaintsCache, null, 2)).catch(err => {
-        console.error("Failed to write complaints file:", err);
-    });
-
-    return complaint;
 }
 
-export async function updateComplaint(id: string, updates: Partial<Complaint>) {
-    // Ensure cache is loaded
-    if (!complaintsCache) {
-        await getComplaints();
+export async function saveUser(user: User): Promise<User> {
+    try {
+        await sql`
+            INSERT INTO users (id, name, email, password, role, branch)
+            VALUES (${user.id}, ${user.name}, ${user.email}, ${user.password}, ${user.role}, ${user.branch || null})
+            ON CONFLICT (email) DO UPDATE
+            SET name = ${user.name}, password = ${user.password}, role = ${user.role}, branch = ${user.branch || null}
+        `;
+        return user;
+    } catch (error) {
+        console.error('Error saving user:', error);
+        throw error;
     }
-
-    const index = complaintsCache!.findIndex((c) => c.id === id);
-    if (index === -1) return null;
-
-    complaintsCache![index] = { ...complaintsCache![index], ...updates };
-
-    // Fire-and-forget write
-    fs.writeFile(COMPLAINTS_FILE, JSON.stringify(complaintsCache, null, 2)).catch(err => {
-        console.error("Failed to write complaints file:", err);
-    });
-
-    return complaintsCache![index];
 }
 
-export async function deleteComplaint(id: string) {
-    // Ensure cache is loaded
-    if (!complaintsCache) {
-        await getComplaints();
+// COMPLAINT OPERATIONS
+export async function getComplaints(): Promise<Complaint[]> {
+    try {
+        const rows = await sql`
+            SELECT *, 
+                   attachments::text as attachments_json,
+                   notes::text as notes_json
+            FROM complaints 
+            ORDER BY created_at DESC
+        `;
+
+        return rows.map((row: any) => ({
+            id: row.id,
+            userId: row.user_id,
+            branch: row.branch,
+            category: row.category,
+            urgency: row.urgency,
+            subject: row.subject,
+            message: row.message,
+            isAnonymous: row.is_anonymous,
+            studentName: row.student_name,
+            studentEmail: row.student_email,
+            status: row.status,
+            createdAt: row.created_at,
+            attachments: JSON.parse(row.attachments_json || '[]'),
+            notes: JSON.parse(row.notes_json || '[]')
+        })) as Complaint[];
+    } catch (error) {
+        console.error('Error fetching complaints:', error);
+        return [];
     }
+}
 
-    const index = complaintsCache!.findIndex((c) => c.id === id);
-    if (index === -1) return false;
+export async function getComplaintById(id: string): Promise<Complaint | null> {
+    try {
+        const rows = await sql`
+            SELECT *, 
+                   attachments::text as attachments_json,
+                   notes::text as notes_json
+            FROM complaints 
+            WHERE id = ${id} 
+            LIMIT 1
+        `;
 
-    // Safety check
-    const initialLength = complaintsCache!.length;
-    complaintsCache!.splice(index, 1);
+        if (rows.length === 0) return null;
 
-    if (initialLength > 1 && complaintsCache!.length === 0) {
-        console.error("CRITICAL ERROR: Deletion wiped all complaints! Aborting save.");
-        // Restore from file to be safe? Or just fail.
-        // For now, just return false and don't write.
+        const row = rows[0] as any;
+        return {
+            id: row.id,
+            userId: row.user_id,
+            branch: row.branch,
+            category: row.category,
+            urgency: row.urgency,
+            subject: row.subject,
+            message: row.message,
+            isAnonymous: row.is_anonymous,
+            studentName: row.student_name,
+            studentEmail: row.student_email,
+            status: row.status,
+            createdAt: row.created_at,
+            attachments: JSON.parse(row.attachments_json || '[]'),
+            notes: JSON.parse(row.notes_json || '[]')
+        } as Complaint;
+    } catch (error) {
+        console.error('Error fetching complaint by ID:', error);
+        return null;
+    }
+}
+
+export async function saveComplaint(complaint: Complaint): Promise<Complaint> {
+    try {
+        const attachmentsJson = JSON.stringify(complaint.attachments || []);
+        const notesJson = JSON.stringify(complaint.notes || []);
+
+        await sql`
+            INSERT INTO complaints (
+                id, user_id, branch, category, urgency, subject, message,
+                is_anonymous, student_name, student_email, status,
+                created_at, attachments, notes
+            )
+            VALUES (
+                ${complaint.id}, ${complaint.userId || null}, ${complaint.branch},
+                ${complaint.category}, ${complaint.urgency}, ${complaint.subject},
+                ${complaint.message}, ${complaint.isAnonymous}, ${complaint.studentName || null},
+                ${complaint.studentEmail || null}, ${complaint.status}, ${complaint.createdAt},
+                ${attachmentsJson}::jsonb, ${notesJson}::jsonb
+            )
+        `;
+
+        return complaint;
+    } catch (error) {
+        console.error('Error saving complaint:', error);
+        throw error;
+    }
+}
+
+export async function updateComplaint(id: string, updates: Partial<Complaint>): Promise<Complaint | null> {
+    try {
+        // First get existing complaint
+        const existing = await getComplaintById(id);
+        if (!existing) return null;
+
+        // Merge updates
+        const updated = { ...existing, ...updates };
+        const notesJson = JSON.stringify(updated.notes || []);
+
+        await sql`
+            UPDATE complaints
+            SET status = ${updated.status},
+                notes = ${notesJson}::jsonb
+            WHERE id = ${id}
+        `;
+
+        return updated;
+    } catch (error) {
+        console.error('Error updating complaint:', error);
+        return null;
+    }
+}
+
+export async function deleteComplaint(id: string): Promise<boolean> {
+    try {
+        await sql`DELETE FROM complaints WHERE id = ${id}`;
+        return true;
+    } catch (error) {
+        console.error('Error deleting complaint:', error);
         return false;
     }
-
-    // Fire-and-forget write
-    fs.writeFile(COMPLAINTS_FILE, JSON.stringify(complaintsCache, null, 2)).catch(err => {
-        console.error("Failed to write complaints file:", err);
-    });
-
-    return true;
-}
-
-export async function getComplaintById(id: string) {
-    const complaints = await getComplaints();
-    return complaints.find((c) => c.id === id) || null;
 }

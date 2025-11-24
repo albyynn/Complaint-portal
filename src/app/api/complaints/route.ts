@@ -2,16 +2,27 @@ import { NextResponse } from 'next/server';
 import { getComplaints, saveComplaint, Complaint } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
+export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
-    const complaints = await getComplaints();
-    return NextResponse.json(complaints);
+    try {
+        const complaints = await getComplaints();
+        return NextResponse.json(complaints, {
+            headers: {
+                'Cache-Control': 'no-store, max-age=0',
+            },
+        });
+    } catch (error) {
+        console.error('Error in GET /api/complaints:', error);
+        return NextResponse.json({ error: 'Failed to fetch complaints' }, { status: 500 });
+    }
 }
 
 export async function POST(request: Request) {
     try {
         const body = await request.json();
 
-        // Basic validation
         if (!body.branch || !body.category || !body.subject || !body.message) {
             return NextResponse.json(
                 { error: 'Missing required fields' },
@@ -39,6 +50,7 @@ export async function POST(request: Request) {
         await saveComplaint(newComplaint);
         return NextResponse.json(newComplaint, { status: 201 });
     } catch (error) {
+        console.error('Error in POST /api/complaints:', error);
         return NextResponse.json(
             { error: 'Failed to create complaint' },
             { status: 500 }
