@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Loader2, Paperclip } from "lucide-react"
+import { Loader2, Paperclip, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -75,9 +75,18 @@ export function ComplaintForm() {
 
     const isAnonymous = form.watch("isAnonymous")
 
+    const [attachmentFiles, setAttachmentFiles] = useState<{ url: string, name: string }[]>([])
+
     async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0]
         if (!file) return
+
+        // Check file size (5MB limit)
+        const maxSize = 5 * 1024 * 1024
+        if (file.size > maxSize) {
+            toast.error("File too large (max 5MB)")
+            return
+        }
 
         setIsUploading(true)
         const formData = new FormData()
@@ -89,13 +98,20 @@ export function ComplaintForm() {
                 body: formData
             })
 
-            if (!res.ok) throw new Error('Upload failed')
+            if (!res.ok) {
+                const error = await res.json()
+                throw new Error(error.error || 'Upload failed')
+            }
 
             const data = await res.json()
             setAttachments(prev => [...prev, data.url])
+            setAttachmentFiles(prev => [...prev, { url: data.url, name: file.name }])
             toast.success("File uploaded successfully")
-        } catch (error) {
-            toast.error("Failed to upload file")
+
+            // Reset input
+            e.target.value = ''
+        } catch (error: any) {
+            toast.error(error.message || "Failed to upload file")
         } finally {
             setIsUploading(false)
         }
@@ -266,30 +282,66 @@ export function ComplaintForm() {
 
                         <div className="space-y-2">
                             <FormLabel>Attachments (Optional)</FormLabel>
-                            <div className="flex items-center gap-4">
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    disabled={isUploading}
-                                    onClick={() => document.getElementById('file-upload')?.click()}
-                                >
-                                    {isUploading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Paperclip className="mr-2 h-4 w-4" />}
-                                    Attach File
-                                </Button>
-                                <input
-                                    id="file-upload"
-                                    type="file"
-                                    className="hidden"
-                                    onChange={handleFileUpload}
-                                />
-                                {attachments.length > 0 && (
-                                    <span className="text-sm text-muted-foreground">
-                                        {attachments.length} file(s) attached
-                                    </span>
+                            <div className="space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="default"
+                                        disabled={isUploading}
+                                        onClick={() => document.getElementById('file-upload')?.click()}
+                                        className="relative"
+                                    >
+                                        {isUploading ? (
+                                            <>
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                Uploading...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Upload className="mr-2 h-4 w-4" />
+                                                Choose File
+                                            </>
+                                        )}
+                                    </Button>
+                                    <input
+                                        id="file-upload"
+                                        type="file"
+                                        className="hidden"
+                                        onChange={handleFileUpload}
+                                        accept="image/*,application/pdf"
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Max 5MB • Images or PDF
+                                    </p>
+                                </div>
+
+                                {attachmentFiles.length > 0 && (
+                                    <div className="space-y-2">
+                                        {attachmentFiles.map((file, index) => (
+                                            <div key={index} className="flex items-center justify-between gap-3 p-3 bg-muted/30 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+                                                <div className="flex items-center gap-2 flex-1 min-w-0">
+                                                    <Paperclip className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                                                    <span className="text-sm truncate">{file.name}</span>
+                                                </div>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive"
+                                                    onClick={() => {
+                                                        setAttachments(prev => prev.filter((_, i) => i !== index))
+                                                        setAttachmentFiles(prev => prev.filter((_, i) => i !== index))
+                                                    }}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
                             </div>
                         </div>
-
                         <FormField
                             control={form.control}
                             name="isAnonymous"
