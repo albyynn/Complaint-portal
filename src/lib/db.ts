@@ -1,6 +1,11 @@
 import { neon } from '@neondatabase/serverless';
 
+// Configure Neon connection
 const sql = neon(process.env.DATABASE_URL!);
+
+// Simple in-memory cache for user lookups (5 minute TTL)
+const userCache = new Map<string, { user: User | null; timestamp: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 export interface User {
     id: string;
@@ -39,7 +44,10 @@ export interface Note {
 // USER OPERATIONS
 export async function getUsers(): Promise<User[]> {
     try {
-        const rows = await sql`SELECT * FROM users`;
+        const rows = await sql`
+            SELECT id, name, email, role, branch, password 
+            FROM users
+        `;
         return rows as User[];
     } catch (error) {
         console.error('Error fetching users:', error);
@@ -49,8 +57,24 @@ export async function getUsers(): Promise<User[]> {
 
 export async function getUserByEmail(email: string): Promise<User | null> {
     try {
-        const rows = await sql`SELECT * FROM users WHERE email = ${email} LIMIT 1`;
-        return rows[0] as User || null;
+        // Check cache first
+        const cached = userCache.get(email);
+        if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+            return cached.user;
+        }
+
+        const rows = await sql`
+            SELECT id, name, email, role, branch, password 
+            FROM users 
+            WHERE email = ${email} 
+            LIMIT 1
+        `;
+        const user = rows[0] as User || null;
+
+        // Cache the result
+        userCache.set(email, { user, timestamp: Date.now() });
+
+        return user;
     } catch (error) {
         console.error('Error fetching user by email:', error);
         return null;
@@ -65,6 +89,10 @@ export async function saveUser(user: User): Promise<User> {
             ON CONFLICT (email) DO UPDATE
             SET name = ${user.name}, password = ${user.password}, role = ${user.role}, branch = ${user.branch || null}
         `;
+
+        // Invalidate cache for this email
+        userCache.delete(user.email);
+
         return user;
     } catch (error) {
         console.error('Error saving user:', error);

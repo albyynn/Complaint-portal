@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,8 +15,15 @@ export default function LoginPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
 
-    async function handleLogin(e: React.FormEvent) {
+    const handleLogin = useCallback(async (e: React.FormEvent) => {
         e.preventDefault()
+
+        // Early validation
+        if (!email || !password) {
+            toast.error("Please fill in all fields")
+            return
+        }
+
         setIsLoading(true)
 
         try {
@@ -35,6 +42,7 @@ export default function LoginPage() {
 
             toast.success(`Welcome back, ${data.user.name}!`)
 
+            // Optimistic navigation
             if (data.user.role === "admin" || data.user.role === "consultant") {
                 router.push("/admin")
             } else {
@@ -42,10 +50,9 @@ export default function LoginPage() {
             }
         } catch (error) {
             toast.error("Invalid credentials")
-        } finally {
             setIsLoading(false)
         }
-    }
+    }, [email, password, router])
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">

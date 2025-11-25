@@ -4,9 +4,13 @@ import { getComplaintById, updateComplaint, deleteComplaint } from '@/lib/db';
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: Request, { params }: { params: { id: string } }) {
+export async function GET(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
     try {
-        const complaint = await getComplaintById(params.id);
+        const { id } = await params;
+        const complaint = await getComplaintById(id);
 
         if (!complaint) {
             return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
@@ -23,10 +27,14 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }
 }
 
-export async function PATCH(request: Request, { params }: { params: { id: string } }) {
+export async function PATCH(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
     try {
+        const { id } = await params;
         const body = await request.json();
-        const updated = await updateComplaint(params.id, body);
+        const updated = await updateComplaint(id, body);
 
         if (!updated) {
             return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
@@ -39,9 +47,13 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
 }
 
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+    request: Request,
+    { params }: { params: Promise<{ id: string }> }
+) {
     try {
-        const success = await deleteComplaint(params.id);
+        const { id } = await params;
+        const success = await deleteComplaint(id);
 
         if (!success) {
             return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });

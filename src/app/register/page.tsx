@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,8 +19,14 @@ export default function RegisterPage() {
         confirmPassword: ""
     })
 
-    async function handleRegister(e: React.FormEvent) {
+    const handleRegister = useCallback(async (e: React.FormEvent) => {
         e.preventDefault()
+
+        // Early validation
+        if (!formData.name || !formData.email || !formData.password) {
+            toast.error("Please fill in all fields")
+            return
+        }
 
         if (formData.password !== formData.confirmPassword) {
             toast.error("Passwords do not match")
@@ -50,10 +56,9 @@ export default function RegisterPage() {
             router.push("/dashboard")
         } catch (error: any) {
             toast.error(error.message)
-        } finally {
             setIsLoading(false)
         }
-    }
+    }, [formData, router])
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
