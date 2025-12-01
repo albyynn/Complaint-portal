@@ -5,9 +5,13 @@ import { v4 as uuidv4 } from 'uuid';
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
     try {
-        const complaints = await getComplaints();
+        const { searchParams } = new URL(request.url);
+        const userId = searchParams.get('userId') || undefined;
+        const role = searchParams.get('role') || undefined;
+
+        const complaints = await getComplaints(userId, role);
         return NextResponse.json(complaints, {
             headers: {
                 'Cache-Control': 'no-store, max-age=0',

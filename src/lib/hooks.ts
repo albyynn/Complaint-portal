@@ -3,9 +3,16 @@ import { Complaint } from './db'
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json())
 
-export function useComplaints() {
+export function useComplaints(userId?: string, role?: string) {
+    const queryParams = new URLSearchParams();
+    if (userId) queryParams.append('userId', userId);
+    if (role) queryParams.append('role', role);
+
+    const queryString = queryParams.toString();
+    const url = `/api/complaints${queryString ? `?${queryString}` : ''}`;
+
     const { data, error, isLoading, mutate } = useSWR<Complaint[]>(
-        '/api/complaints',
+        url,
         fetcher,
         {
             dedupingInterval: 2000,

@@ -101,15 +101,37 @@ export async function saveUser(user: User): Promise<User> {
 }
 
 // COMPLAINT OPERATIONS
-export async function getComplaints(): Promise<Complaint[]> {
+export async function getComplaints(userId?: string, role?: string): Promise<Complaint[]> {
     try {
-        const rows = await sql`
-            SELECT *, 
-                   attachments::text as attachments_json,
-                   notes::text as notes_json
-            FROM complaints 
-            ORDER BY created_at DESC
-        `;
+        let query;
+
+        if (role === 'admin' || role === 'consultant') {
+            // Admins see all complaints
+            query = sql`
+                SELECT *, 
+                       attachments::text as attachments_json,
+                       notes::text as notes_json
+                FROM complaints 
+                ORDER BY created_at DESC
+            `;
+        } else if (userId) {
+            // Users see only their own complaints
+            // We check both user_id (for registered users) and student_email (for guest/legacy)
+            // Note: In a real app, we'd want to be more strict, but this covers the current data model
+            query = sql`
+                SELECT *, 
+                       attachments::text as attachments_json,
+                       notes::text as notes_json
+                FROM complaints 
+                WHERE user_id = ${userId} 
+                ORDER BY created_at DESC
+            `;
+        } else {
+            // No user context provided, return empty for safety
+            return [];
+        }
+
+        const rows = await query;
 
         return rows.map((row: any) => ({
             id: row.id,

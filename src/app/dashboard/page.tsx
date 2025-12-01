@@ -13,7 +13,7 @@ import { LoadingPage } from "@/components/loading"
 export default function DashboardPage() {
     const router = useRouter()
     const [user, setUser] = useState<any>(null)
-    const { complaints: allComplaints, isLoading } = useComplaints()
+    const { complaints: allComplaints, isLoading } = useComplaints(user?.id || user?.email, user?.role)
     const [myComplaints, setMyComplaints] = useState<Complaint[]>([])
 
     useEffect(() => {
@@ -28,18 +28,10 @@ export default function DashboardPage() {
     }, [router])
 
     useEffect(() => {
-        if (allComplaints && user) {
-            const anonymousIds = JSON.parse(localStorage.getItem("anonymous_complaint_ids") || "[]")
-            const currentUserId = user.id || user.email
-
-            const filtered = allComplaints.filter((c) =>
-                c.userId === currentUserId ||
-                c.studentEmail === user.email ||
-                anonymousIds.includes(c.id)
-            )
-            setMyComplaints(filtered)
+        if (allComplaints) {
+            setMyComplaints(allComplaints)
         }
-    }, [allComplaints, user])
+    }, [allComplaints])
 
     function handleLogout() {
         localStorage.removeItem("user")

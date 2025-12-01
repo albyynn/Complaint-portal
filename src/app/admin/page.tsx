@@ -16,7 +16,7 @@ import { LoadingPage } from "@/components/loading"
 export default function AdminDashboard() {
     const router = useRouter()
     const [user, setUser] = useState<any>(null)
-    const { complaints: allComplaints, isLoading } = useComplaints()
+    const { complaints: allComplaints, isLoading } = useComplaints(user?.id, user?.role)
     const [filteredComplaints, setFilteredComplaints] = useState<Complaint[]>([])
 
     // Filters
